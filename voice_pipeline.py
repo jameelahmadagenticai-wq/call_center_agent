@@ -91,22 +91,62 @@ def ask_mistral(user_text, history):
 # ========================
 # STEP 4 — Piper (TTS)
 # ========================
+# def speak(text):
+#     process = subprocess.Popen(
+#         [PIPER_PATH, "--model", MODEL_PATH, "--output_file", OUTPUT_FILE],
+#         stdin=subprocess.PIPE,
+#         stdout=subprocess.PIPE,
+#         stderr=subprocess.PIPE
+#     )
+
+#     _, err = process.communicate(input=text.encode())
+
+#     if err:
+#         print("⚠️ Piper error:", err.decode())
+
+#     # Play audio (Windows)
+#     winsound.PlaySound(OUTPUT_FILE, winsound.SND_FILENAME)
+
+
+# ==========================new speak funtion for the telegram======================
+import os
+import subprocess
+
 def speak(text):
+    wav_file = "reply.wav"
+    ogg_file = "reply.ogg"
+
+    # 🔊 Generate WAV via Piper
     process = subprocess.Popen(
-        [PIPER_PATH, "--model", MODEL_PATH, "--output_file", OUTPUT_FILE],
-        stdin=subprocess.PIPE,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE
+        [PIPER_PATH, "--model", MODEL_PATH, "--output_file", wav_file],
+        stdin=subprocess.PIPE
     )
 
-    _, err = process.communicate(input=text.encode())
+    process.communicate(input=text.encode())
 
-    if err:
-        print("⚠️ Piper error:", err.decode())
+    # ✅ CHECK FILE EXISTS
+    if not os.path.exists(wav_file):
+        raise Exception("❌ Piper did NOT generate reply.wav")
 
-    # Play audio (Windows)
-    winsound.PlaySound(OUTPUT_FILE, winsound.SND_FILENAME)
+    print("✅ WAV created:", wav_file)
 
+    # 🔁 Convert to OGG (Telegram format)
+    subprocess.run([
+        "ffmpeg",
+        "-y",
+        "-i", wav_file,
+        "-c:a", "libopus",
+        "-b:a", "64k",
+        ogg_file
+    ])
+
+    # ✅ CHECK OGG
+    if not os.path.exists(ogg_file):
+        raise Exception("❌ FFmpeg failed to create reply.ogg")
+
+    print("✅ OGG created:", ogg_file)
+
+    return ogg_file
 
 # ========================
 # MAIN LOOP
